@@ -9,6 +9,7 @@ class DAG:
         self.startingNodes = []
         self.letterStack = []
         self.availableWorkers = 5
+        #self.availableWorkers = 2
         self.availableLetters = []
         self.workingNodes = []
 
@@ -81,12 +82,18 @@ class DAG:
         total_seconds = 0
 
         while len(self.letterStack) > 0:
-            print(total_seconds, self.availableLetters, self.availableWorkers)
+            print_str = ""
+            for elem in self.workingNodes:
+                print_str += elem.letter
+
+            print(total_seconds, self.availableLetters, self.availableWorkers, print_str, " ", traversal_string)
+            
 
             while( self.availableWorkers > 0 and len(self.availableLetters) > 0):
                 
                     self.availableWorkers -= 1
-                    self.workingNodes.append(self.node_dict[self.availableLetters.pop()])
+                    self.workingNodes.append(self.node_dict[self.pop_lowest_available_letter()])
+                    
 
             for workingNode in self.workingNodes:
                 if workingNode.timeToFinish == 0:
@@ -104,7 +111,10 @@ class DAG:
                     workingNode.timeToFinish -= 1
 
             self.update_available_letters(traversal_string)
-
+            while( self.availableWorkers > 0 and len(self.availableLetters) > 0):
+                
+                    self.availableWorkers -= 1
+                    self.workingNodes.append(self.node_dict[self.pop_lowest_available_letter()])
             total_seconds += 1
 
 
@@ -123,6 +133,15 @@ class DAG:
             if prereqs_finished == True and letter not in self.availableLetters and letter not in traversal_string and self.node_dict[letter] not in self.workingNodes:
                 self.availableLetters.append(letter)
 
+    def pop_lowest_available_letter(self):
+        lowest_letter = 'a'
+        for letter in self.availableLetters:
+            if letter < lowest_letter:
+                lowest_letter = letter
+        
+        return self.availableLetters.pop(self.availableLetters.index(lowest_letter))
+
+
 
 
 
@@ -134,7 +153,8 @@ class Node:
         self.letter = letter
         self.pointer_array = []
         self.points_from_array = []
-        self.timeToFinish = ord(letter) - 64
+        #self.timeToFinish = ord(letter) - 65
+        self.timeToFinish = ord(letter) - 4
 
     def point_to(self, node):
         self.pointer_array.append(node)
@@ -157,7 +177,7 @@ class Node:
 
 dag = DAG()
 
-fp = open('test_input.txt', 'r')
+fp = open('input.txt', 'r')
 
 for line in fp.readlines():
     line_ary = line.split()
@@ -176,11 +196,11 @@ for Node in dag.node_dict.values():
 
 print(letter_set) #Z starts the DAG
 
-#dag.setStartNode("G") #TGKP could all start the DAG, the letter stack should start with these 4
-#dag.setStartNode("T")
-#dag.setStartNode("K")
-#dag.setStartNode("P")
-dag.setStartNode("C")
+dag.setStartNode("G") #TGKP could all start the DAG, the letter stack should start with these 4
+dag.setStartNode("T")
+dag.setStartNode("K")
+dag.setStartNode("P")
+#dag.setStartNode("C")
 
 print(dag)
 
@@ -190,3 +210,4 @@ print(dag)
 time_traversal_seconds = dag.time_traversal()
 
 print(time_traversal_seconds)
+#guessed 939 and 938 and 937 and 936 and 935
