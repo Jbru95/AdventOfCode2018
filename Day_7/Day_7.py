@@ -6,14 +6,19 @@ class DAG:
 
     def __init__(self):
         self.node_dict = {}
-        self.startingNode = None
+        self.startingNodes = []
         self.letterStack = []
+        self.availableWorkers = 5
+        self.availableLetters = []
+        self.workingNodes = []
 
     def __repr__(self):
         
         for elem in self.node_dict.values():
             print(elem)
-        print("Base Node: " + self.startingNode.letter)
+        print("Base Nodes: ")
+        for elem in self.startingNodes: 
+            print(elem)
         return "end"
 
     def addNodetoDAG(self, nodeLetter, pointsToNodeLetter = None):
@@ -29,11 +34,13 @@ class DAG:
             self.node_dict[nodeLetter].point_to(self.node_dict[pointsToNodeLetter])
 
     def setStartNode(self, startingLetter):
-        self.startingNode = self.node_dict[startingLetter]
+        self.startingNodes.append(self.node_dict[startingLetter])
 
     def alphabetic_order_traversal(self):
 
-        self.letterStack.append(self.startingNode.letter)
+        for node in self.startingNodes:
+            self.letterStack.append(node.letter)
+
         traversal_string = ""
 
         while len(self.letterStack) > 0:
@@ -41,30 +48,85 @@ class DAG:
             traversal_string += lowest_letter
             #self.letterStack.extend(self.node_dict[lowest_letter].pointer_array)
             for node in self.node_dict[lowest_letter].pointer_array:
-                if node.letter not in self.letterStack:
+                if node.letter not in self.letterStack and node.letter not in traversal_string:
                     self.letterStack.append(node.letter)
-            print(self.letterStack)
-            print(traversal_string)
 
         return traversal_string
 
     def pop_lowest_letter_with_completed_prereqs(self, traversal_string):
         if len(self.letterStack) > 0:
-            lowest_letter = self.letterStack[0]
+            lowest_letter = 'a'
         else:
             return None
 
         for letter in self.letterStack:
             prereqs_finised = True
-
             for node in self.node_dict[letter].points_from_array:
                 if node.letter not in traversal_string:
                     prereqs_finised = False
-
             if letter < lowest_letter and prereqs_finised == True :
                 lowest_letter = letter
+            
         
         return self.letterStack.pop(self.letterStack.index(lowest_letter))
+
+
+    def time_traversal(self):
+        traversal_string = ""
+
+        for node in self.startingNodes:
+            self.letterStack.append(node.letter)
+            self.update_available_letters(traversal_string)
+
+        total_seconds = 0
+
+        while len(self.letterStack) > 0:
+            print(total_seconds, self.availableLetters, self.availableWorkers)
+
+            while( self.availableWorkers > 0 and len(self.availableLetters) > 0):
+                
+                    self.availableWorkers -= 1
+                    self.workingNodes.append(self.node_dict[self.availableLetters.pop()])
+
+            for workingNode in self.workingNodes:
+                if workingNode.timeToFinish == 0:
+                    traversal_string += workingNode.letter
+
+                    for node in workingNode.pointer_array:
+                        if node.letter not in self.letterStack and node.letter not in traversal_string:
+                            self.letterStack.append(node.letter)
+                    
+                    self.letterStack.pop(self.letterStack.index(workingNode.letter))
+                    self.workingNodes.pop(self.workingNodes.index(workingNode))
+                    self.availableWorkers += 1
+
+                else: 
+                    workingNode.timeToFinish -= 1
+
+            self.update_available_letters(traversal_string)
+
+            total_seconds += 1
+
+
+        print(traversal_string)
+        return total_seconds
+
+    
+    def update_available_letters(self, traversal_string):
+        for letter in self.letterStack:
+            prereqs_finished = True
+
+            for node in self.node_dict[letter].points_from_array:
+                if node.letter not in traversal_string:
+                    prereqs_finished = False
+            
+            if prereqs_finished == True and letter not in self.availableLetters and letter not in traversal_string and self.node_dict[letter] not in self.workingNodes:
+                self.availableLetters.append(letter)
+
+
+
+
+
 
 class Node:
     
@@ -72,6 +134,7 @@ class Node:
         self.letter = letter
         self.pointer_array = []
         self.points_from_array = []
+        self.timeToFinish = ord(letter) - 64
 
     def point_to(self, node):
         self.pointer_array.append(node)
@@ -81,6 +144,12 @@ class Node:
         ret_str = self.letter + " points to -> "
         for node in self.pointer_array:
             ret_str += node.letter + ", "
+        
+        ret_str += ", has pointers from ->"
+        for node in self.points_from_array:
+            ret_str += node.letter + ", "
+
+        ret_str += ". Time to Finish: " + str(self.timeToFinish)
 
         return ret_str
         
@@ -88,7 +157,7 @@ class Node:
 
 dag = DAG()
 
-fp = open('input.txt', 'r')
+fp = open('test_input.txt', 'r')
 
 for line in fp.readlines():
     line_ary = line.split()
@@ -107,11 +176,17 @@ for Node in dag.node_dict.values():
 
 print(letter_set) #Z starts the DAG
 
-dag.setStartNode("G")
+#dag.setStartNode("G") #TGKP could all start the DAG, the letter stack should start with these 4
+#dag.setStartNode("T")
+#dag.setStartNode("K")
+#dag.setStartNode("P")
+dag.setStartNode("C")
 
 print(dag)
 
-traversal_order = dag.alphabetic_order_traversal()
+#traversal_order = dag.alphabetic_order_traversal()
+#print(traversal_order)
 
-print(traversal_order)
+time_traversal_seconds = dag.time_traversal()
 
+print(time_traversal_seconds)
