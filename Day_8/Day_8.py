@@ -3,23 +3,52 @@ class Tree:
         self.node_dict = {}
         self.input_list = input_list
         self.input_index = 0
+        self.height = 0
+        self.root_node = None
+        self.meta_data_total = 0
+        self.fill_tree_from_input()
 
     def __repr__(self): 
+        ret_str = "Tree: "
+        ret_str += str(self.root_node)
+        return ret_str
 
-    def fill_tree_from_input():
+    def fill_tree_from_input(self):
+        self.add_node(None, 0)
 
-        node = node(self.input_list[self.input_index], self.input_list[self.input_index])
-        self.input_index += 1
+    def add_node(self, parent_node, start_index):
+        add_node = Node(self.input_list[start_index], self.input_list[start_index + 1])
+        start_index += 2
 
+        if add_node.child_node_num == 0: #add node has no children, just add meta data and increment pointer index
+            for i in range(add_node.meta_data_num):
+                add_node.add_meta_data(self.input_list[start_index + i])
+                self.meta_data_total += int(self.input_list[start_index + i])
+            start_index += add_node.meta_data_num
 
-        
+        else: #add node has children, add these nodes recursively calling add_node
+            for i in range(add_node.child_node_num):
+                start_index = self.add_node(add_node, start_index)
+            
+            for i in range(add_node.meta_data_num):
+                add_node.add_meta_data(self.input_list[start_index + i])
+                self.meta_data_total += int(self.input_list[start_index + i])
+            start_index += add_node.meta_data_num
+
+        if (parent_node is not None):
+            parent_node.children.append(add_node)
+        else:
+            self.root_node = add_node
+        #print(add_node)
+
+        return start_index
 
 
 
 class Node:
     def __init__(self, childNum, metaNum):
-        self.child_node_num = childNum
-        self.meta_data_num = metaNum
+        self.child_node_num = int(childNum)
+        self.meta_data_num = int(metaNum)
         self.meta_data = []
         self.children = []
     
@@ -35,20 +64,27 @@ class Node:
         elif isinstance(child_node, list):
             self.children.extend(child_node)
 
+    def __str__(self):
+        ret_str = "Meta Data: "
+        for elem in self.meta_data:
+            ret_str += str(elem) + ", "
+        ret_str += " Children:[ "
+        for child_node in self.children:
+            ret_str += child_node.__str__()
+        ret_str += "]"
+        return ret_str
 
 
-    
-
-
-
-
-fp = open('test_input.txt', 'r')
+fp = open('input.txt', 'r')
 for line in fp.readlines():
     node_tree = Tree(line.strip().split(' '))
 fp.close()
 
 
 print(node_tree.input_list)
+
+print(node_tree)
+print(node_tree.meta_data_total)
 
 
 
