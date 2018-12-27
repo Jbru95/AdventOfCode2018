@@ -76,7 +76,7 @@ class Tree:
         else:
             sub_sum = 0 
             for num in current_node.meta_data:
-                if int(num) <= len(current_node.children) - 1:
+                if int(num) <= len(current_node.children):
                     sub_sum += self.find_node_value(current_node.children[int(num) - 1])
             return sub_sum
 
