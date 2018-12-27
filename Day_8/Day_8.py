@@ -23,7 +23,7 @@ class Tree:
         if add_node.child_node_num == 0: #add node has no children, just add meta data and increment pointer index
             for i in range(add_node.meta_data_num):
                 add_node.add_meta_data(self.input_list[start_index + i])
-                self.meta_data_total += int(self.input_list[start_index + i])
+                #self.meta_data_total += int(self.input_list[start_index + i])
             start_index += add_node.meta_data_num
 
         else: #add node has children, add these nodes recursively calling add_node
@@ -32,7 +32,7 @@ class Tree:
             
             for i in range(add_node.meta_data_num):
                 add_node.add_meta_data(self.input_list[start_index + i])
-                self.meta_data_total += int(self.input_list[start_index + i])
+                #self.meta_data_total += int(self.input_list[start_index + i])
             start_index += add_node.meta_data_num
 
         if (parent_node is not None):
@@ -42,6 +42,21 @@ class Tree:
         #print(add_node)
 
         return start_index
+
+    def calculate_meta_data_total(self):
+        self.add_meta_data(None)
+
+    def add_meta_data(self, current_node):
+
+        if current_node == None:
+            current_node = self.root_node
+
+        for num in current_node.meta_data:
+            self.meta_data_total += int(num)
+
+        for child_node in current_node.children:
+            self.add_meta_data(child_node)
+
 
 
 
@@ -84,6 +99,9 @@ fp.close()
 print(node_tree.input_list)
 
 print(node_tree)
+
+node_tree.calculate_meta_data_total()
+
 print(node_tree.meta_data_total)
 
 
