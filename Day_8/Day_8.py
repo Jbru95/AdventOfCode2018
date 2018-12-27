@@ -7,6 +7,7 @@ class Tree:
         self.root_node = None
         self.meta_data_total = 0
         self.fill_tree_from_input()
+        self.part2_value = 0
 
     def __repr__(self): 
         ret_str = "Tree: "
@@ -43,7 +44,7 @@ class Tree:
 
         return start_index
 
-    def calculate_meta_data_total(self):
+    def calculate_part1(self):
         self.add_meta_data(None)
 
     def add_meta_data(self, current_node):
@@ -56,6 +57,36 @@ class Tree:
 
         for child_node in current_node.children:
             self.add_meta_data(child_node)
+
+    def calculate_part2(self):
+        self.part2_value = self.find_node_value(None)
+        
+    def find_node_value(self, current_node):
+
+        if current_node == None:
+            current_node = self.root_node
+        
+        if len(current_node.children) == 0:
+            sub_sum = 0
+            for num in current_node.meta_data:
+                #self.part2_value += int(num)
+                sub_sum += int(num)
+            return sub_sum
+        
+        else:
+            sub_sum = 0 
+            for num in current_node.meta_data:
+                if int(num) <= len(current_node.children) - 1:
+                    sub_sum += self.find_node_value(current_node.children[int(num) - 1])
+            return sub_sum
+
+
+        
+
+
+
+
+    
 
 
 
@@ -100,9 +131,11 @@ print(node_tree.input_list)
 
 print(node_tree)
 
-node_tree.calculate_meta_data_total()
-
+node_tree.calculate_part1()
 print(node_tree.meta_data_total)
+
+node_tree.calculate_part2()
+print(node_tree.part2_value)
 
 
 
