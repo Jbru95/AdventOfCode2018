@@ -3,6 +3,13 @@ Day 13 -> Carts and Crashes
     Part 1 -> Need to model a set of carts and a rail system that the carts move on with certain rules, need to find coordinates of the first crash, denoted by X on the grid
         Answer -> 94,78
     Part 2 -> Instead of carts crashing, when they do they are removed right before a collision, where is the last carts location when it becomes the last cart.
+        - last few inputs
+            [x: 66, y: 140, disp: <, x: 62, y: 140, disp: >, x: 63, y: 51, disp: ^]
+            [x: 65, y: 140, disp: <, x: 63, y: 140, disp: >, x: 63, y: 50, disp: >]
+            [x: 64, y: 140, disp: X, x: 64, y: 50, disp: >]
+            [x: 65, y: 50, disp: >]
+        - Tried -> 64,50  ,  65,50,   63,50    ,   66,50
+
 '''
 
 class Grid:
