@@ -8,7 +8,7 @@ Day 13 -> Carts and Crashes
             [x: 65, y: 140, disp: <, x: 63, y: 140, disp: >, x: 63, y: 50, disp: >]
             [x: 64, y: 140, disp: X, x: 64, y: 50, disp: >]
             [x: 65, y: 50, disp: >]
-        - Tried -> 64,50  ,  65,50,   63,50    ,   66,50
+        - Tried -> 64,50  ,  65,50,   63,50    ,   66,50, correct answer -> (26,85)
 
 '''
 
@@ -255,4 +255,4 @@ while user_input == "":
 
     grid.moveCarts()
     print(grid.cartArray)
-    #grid.displayGrid()
+    grid.displayGrid()
