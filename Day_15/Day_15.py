@@ -1,5 +1,9 @@
 '''
 Day 15 - Goblins vs. Elves
+
+    Part 1 - Setting everything up, and the first test passed with correct return value of 27730 after 47 turns
+        Test 1 - correct return value of 27730 after 47 turns
+        Test 2 -
 '''
 import copy
 class BattleGrid:
@@ -60,11 +64,23 @@ class BattleGrid:
         self.updateUnitReadingOrderArray()
 
         for unit in self.unitReadingOrderArray:
+            if unit.hp <= 0:
+                continue
+            print("unit about to perform action,", unit)
             unit.performAction(self)
         self.turns += 1
+
+
         self.updateUnitReadingOrderArray()
 
-    
+    def returnOutcome(self):
+        hpTotal = 0
+        self.updateUnitReadingOrderArray()
+        for unit in self.unitReadingOrderArray:
+            hpTotal += unit.hp
+        
+        return hpTotal*self.turns
+
 
 
 class Unit:
@@ -131,9 +147,10 @@ class Unit:
     def attack(self, game, positionToAttackTup):
         enemyUnit = game.unitDict[str(positionToAttackTup[0]) + ',' + str(positionToAttackTup[1])]
         enemyUnit.hp -= self.dmg #reduce the health of the enemy at the attaack position by the units damage value
+        print(self, 'attacked ', enemyUnit)
         if enemyUnit.hp <= 0:
 
-            game.unitReadingOrderArray.remove(enemyUnit)
+            # game.unitReadingOrderArray.remove(enemyUnit)
             if enemyUnit.type == "G":
                 game.goblinUnitArray.remove(enemyUnit)
             if enemyUnit.type =="E":
@@ -153,6 +170,11 @@ class Unit:
 
     def performAction(self, game):
         enemyOpenSpaces = []
+
+        if(self.inRangeOfEnemy(game) != None): #in range of enemy so attack
+            self.attack(game, self.inRangeOfEnemy(game))
+            return None
+
         if self.type == 'G':
             for unit in game.elfUnitArray:
                 enemyOpenSpaces.extend(unit.returnOpenAdjacentSpaces(copy.deepcopy(game.grid), unit.i, unit.j)) #adding to array of open Enemy Spaces (possible movement targets)
@@ -162,9 +184,6 @@ class Unit:
         #print(enemyOpenSpaces, self.inRangeOfEnemy(game))
         if (len(enemyOpenSpaces) == 0) and (self.inRangeOfEnemy(game) == None): #checking to see if any moves are possible
             return None
-        
-        if(self.inRangeOfEnemy(game) != None): #in range of enemy so attack
-            self.attack(game, self.inRangeOfEnemy(game))
     
         else: #enemy has open spaces and there is not an enemy in range so time to move
             moveSpace = self.returnMoveSpace(copy.deepcopy(game.grid), game.goblinUnitArray.copy(), game.elfUnitArray.copy())
@@ -271,5 +290,5 @@ while userInput == "":
     userInput = input()
     game.performUnitActions()
     print(game)
-    #print(game.unitReadingOrderArray)
+    print(game.returnOutcome())
 
