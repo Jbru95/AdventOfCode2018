@@ -5,6 +5,7 @@ import copy
 class BattleGrid:
     
     def __init__(self):
+        self.turns = 0
         self.unitReadingOrderArray = []
         self.goblinUnitArray = []
         self.elfUnitArray = []
@@ -23,10 +24,14 @@ class BattleGrid:
         self.initializeUnits()
 
     def __str__(self):
-        ret_str = ""
+        ret_str = " Turn: " + str(self.turns) + '\n'
         for row in self.grid:
             for elem in row:
                 ret_str += str(elem)
+            ret_str += '\n'
+        
+        for unit in self.unitReadingOrderArray:
+            ret_str += str(unit)
             ret_str += '\n'
         return ret_str
 
@@ -56,6 +61,8 @@ class BattleGrid:
 
         for unit in self.unitReadingOrderArray:
             unit.performAction(self)
+        self.turns += 1
+        self.updateUnitReadingOrderArray()
 
     
 
@@ -96,15 +103,30 @@ class Unit:
         return openSpaceTupArray
 
     def inRangeOfEnemy(self, game): #if in range of an enemy unit returns the space of the first in reading order, otherwise returns None
+        enemyUnitsInRangeArray = []
         if game.grid[self.i - 1][self.j] == self.enemyType:
-            return (self.i - 1,self.j)
+            enemyUnitsInRangeArray.append((self.i - 1,self.j))
         if game.grid[self.i][self.j-1] == self.enemyType:
-            return (self.i,self.j-1)
+            enemyUnitsInRangeArray.append((self.i,self.j-1))
         if game.grid[self.i][self.j+1] == self.enemyType:
-            return (self.i,self.j+1)
+            enemyUnitsInRangeArray.append((self.i,self.j+1))
         if game.grid[self.i + 1][self.j] == self.enemyType:
-            return (self.i+1,self.j)
-        return None
+            enemyUnitsInRangeArray.append((self.i+1,self.j))
+
+        if len(enemyUnitsInRangeArray) == 0:
+            return None
+        else:
+            lowest_hp = 1000
+            for tup in enemyUnitsInRangeArray:
+                if game.unitDict[str(tup[0]) + ',' + str(tup[1])].hp < lowest_hp:
+                    lowest_hp = game.unitDict[str(tup[0]) + ',' + str(tup[1])].hp
+            
+            for tup in enemyUnitsInRangeArray:
+                if game.unitDict[str(tup[0]) + ',' + str(tup[1])].hp == lowest_hp:
+                    return tup #another  heuristic because the array is already in reading order, selecting the first one with lowest hp, will select earliest in reading order if there is a tie
+
+
+
 
     def attack(self, game, positionToAttackTup):
         enemyUnit = game.unitDict[str(positionToAttackTup[0]) + ',' + str(positionToAttackTup[1])]
@@ -137,7 +159,7 @@ class Unit:
         elif self.type == 'E':
             for unit in game.goblinUnitArray:
                 enemyOpenSpaces.extend(unit.returnOpenAdjacentSpaces(copy.deepcopy(game.grid), unit.i, unit.j)) #adding to array of open Enemy Spaces (possible movement targets)
-        print(enemyOpenSpaces, self.inRangeOfEnemy(game))
+        #print(enemyOpenSpaces, self.inRangeOfEnemy(game))
         if (len(enemyOpenSpaces) == 0) and (self.inRangeOfEnemy(game) == None): #checking to see if any moves are possible
             return None
         
@@ -147,99 +169,107 @@ class Unit:
         else: #enemy has open spaces and there is not an enemy in range so time to move
             moveSpace = self.returnMoveSpace(copy.deepcopy(game.grid), game.goblinUnitArray.copy(), game.elfUnitArray.copy())
             self.move(game, moveSpace)
+            if(self.inRangeOfEnemy(game) != None): #in range of enemy so attack
+                self.attack(game, self.inRangeOfEnemy(game))
 
 
     def returnMoveSpace(self, grid, goblinArray, elfArray): #return a space to move to, or return None if the unit shouldn't move
-        print('in return move space')
-        gridCopy = copy.deepcopy(grid)
-        spaceOptionsArray = []
-        possibleDestinations = []
-        spaceOptionsArray.extend(self.returnOpenAdjacentSpaces(gridCopy, self.i, self.j)) #fill array 
+        #print('in return move space')
+        gridCopy = copy.deepcopy(grid) # DeepCopy the grid so we can manipulate the spaces without changing the original
+        spaceOptionsArray = [] # Array containing (i,j) tups of all the open adjacent spaces a unit can move to 
+        possibleDestinations = [] # Array containing (i,j) tups of all the possible dedtination spaces for this unit
 
-        if self.type == "E":
+        spaceOptionsArray.extend(self.returnOpenAdjacentSpaces(gridCopy, self.i, self.j)) #fill spaceOptionsArray 
+
+        if self.type == "E": # if the unit were moving is an elf, fill destinations withs open adjacent squares from a G
             for unit in goblinArray:
                 possibleDestinations.extend(self.returnOpenAdjacentSpaces(gridCopy, unit.i, unit.j))
 
-        if self.type == "G":
+        if self.type == "G": # do the opposite if the unit moving is a goblin
             for unit in elfArray:
                 possibleDestinations.extend(self.returnOpenAdjacentSpaces(gridCopy, unit.i, unit.j))
 
-        print(spaceOptionsArray, possibleDestinations)
+        #print(spaceOptionsArray, possibleDestinations)
 
-        origTempSpaceArray = copy.deepcopy(spaceOptionsArray)
-        nextTempSpaceArray = []
-        tupsToDeleteArray = []
+        origTempSpaceArray = copy.deepcopy(spaceOptionsArray) #deepCopy SpaceOptionArray
+        nextTempSpaceArray = [] #Array containing the next loop of Spaces to Evaluate
 
-        for i in range(1,20):
-            for tup in origTempSpaceArray:
-                gridCopy[tup[0]][tup[1]] = i
-                tupsToDeleteArray.append(tup)
-                nextTempSpaceArray.extend(self.returnOpenAdjacentSpaces(gridCopy, tup[0], tup[1]))
+        for i in range(1,20): #evaluates spaces around the unit, and then around those spaces, in order to calculate distances to all reachable points from the unit
+            for tup in origTempSpaceArray: #evaluate positions in Array holding the temporary spaces to evaluate
+                gridCopy[tup[0]][tup[1]] = i #set those positions on the map to the current distance (i)
+                nextTempSpaceArray.extend(self.returnOpenAdjacentSpaces(gridCopy, tup[0], tup[1])) #Add newly found spaces for the next iteration in this array
 
-            origTempSpaceArray = nextTempSpaceArray.copy()
-            nextTempSpaceArray = []
+            origTempSpaceArray = nextTempSpaceArray.copy() #swap the next array with the current one
+            nextTempSpaceArray = [] #empty the next array so it can be refilled
 
-        destinationDistanceDict = {}
         lowestNum = 1000
-        for spaceTup in possibleDestinations:
-            space = gridCopy[spaceTup[0]][spaceTup[1]]
-            if space != '.':
-                num = int(space)
-                if num < lowestNum:
-                    lowestNum = num
-        print(lowestNum)
+        for spaceTup in possibleDestinations:  #for all possible destination spaces
+            space = gridCopy[spaceTup[0]][spaceTup[1]] #what is contained there
+            if space != '.': #since we replaced all reachable positions with numbers, if the space is a '.' it cant be reached by the unit
+                num = int(space) #convert the char to an int
+                if num < lowestNum: 
+                    lowestNum = num #find the lowest possible destination square with the lowest number(dstance from the unit)
+        #print(lowestNum)
         
-        nearestDestinations = []
+        nearestDestinations = [] #now that we have the lowestNum, add all positions that are that distance from the unit to this array
         for spaceTup in possibleDestinations:
             if gridCopy[spaceTup[0]][spaceTup[1]] == lowestNum:
                 nearestDestinations.append(spaceTup)
         print(self)
-        destination = nearestDestinations[0] #this is a heuristic, the nearestdestination array should be in reading order already, but if not this is incorrect
-        gridCopy2 = copy.deepcopy(grid)
+        print(nearestDestinations)
 
-        nextTempSpaceArray = []
-        tupsToDeleteArray = []
-        gridCopy2[destination[0]][destination[1]] = 'X'
+        if len(nearestDestinations) == 0:
+            return None
+        destination = nearestDestinations[0] #this is a heuristic, the nearestdestination array should be in reading order already, but if not this is incorrect
+
+        gridCopy2 = copy.deepcopy(grid) #now we have the square we need to go to, we need to find the shortest path to get there, if there are multiple first step should be in reading order
+
+        nextTempSpaceArray = [] #performing the same operation as finding which destination to move to but starting at the destination, to the unit
+        gridCopy2[destination[0]][destination[1]] = 'X' #set the detination as an X so its not a '.'
         
-        for tup in spaceOptionsArray:
+        for tup in spaceOptionsArray: #if the destination square is one of the square already in range of the unit, just return that square
             if gridCopy2[tup[0]][tup[1]] == "X":
                 return tup
 
-        origBackSpaceArray = self.returnOpenAdjacentSpaces(grid, destination[0], destination[1])
+        origBackSpaceArray = self.returnOpenAdjacentSpaces(grid, destination[0], destination[1]) #fill this array to eval positions
 
-        for i in range(1,20):
+        for i in range(1,20): # same thing as above, setting distances on grid = to i, and then adding new squares to eval to nextTempSpaceArray
             for tup in origBackSpaceArray:
                 gridCopy2[tup[0]][tup[1]] = i
-                tupsToDeleteArray.append(tup)
                 nextTempSpaceArray.extend(self.returnOpenAdjacentSpaces(gridCopy2, tup[0], tup[1]))
 
-            origBackSpaceArray = nextTempSpaceArray.copy()
-            nextTempSpaceArray = []
+            origBackSpaceArray = nextTempSpaceArray.copy() #swap arrays
+            nextTempSpaceArray = [] #empty next array to be refilled and recopied next iteration
 
         #print("dest: ", destination)
         #print("options: ", spaceOptionsArray)
-        ret_str = ""
+        ret_str = "" #display grid
         for row in gridCopy2:
             for elem in row:
                 ret_str += str(elem)
             ret_str += '\n'
-        #print(ret_str)  
+        #print(ret_str)
 
         #print(lowestNum)
-        for i in range(len(gridCopy2)):
-            for j in range(len(gridCopy2[i])):
+        for i in range(len(gridCopy2)): #search through the original grid in reading order to find the first 1, which will be the shortest path in reading order
+            for j in range(len(gridCopy2[i])): #this may also be a heuristic though
                 if ((i,j) in spaceOptionsArray and gridCopy2[i][j] == lowestNum-1):
                     return (i,j)   
 
 game = BattleGrid()
 
 print(game)
-print(game.grid)
-print(game.unitReadingOrderArray)
-print(game.unitDict)
 
+game.performUnitActions()
+print(game)
 
-for i in range(20):
+game.performUnitActions()
+print(game)
+
+userInput = ""
+while userInput == "":
+    userInput = input()
     game.performUnitActions()
     print(game)
-    print(game.unitReadingOrderArray)
+    #print(game.unitReadingOrderArray)
+
